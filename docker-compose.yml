@@ -1,0 +1,54 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: wagering
+      POSTGRES_PASSWORD: wagering
+      POSTGRES_DB: wagering
+    ports: ["5432:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wagering"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  localstack:
+    image: localstack/localstack:3.8
+    environment:
+      SERVICES: sqs
+      AWS_DEFAULT_REGION: us-east-1
+    ports: ["4566:4566"]
+    volumes:
+      - ./docker/localstack/init-sqs.sh:/etc/localstack/init/ready.d/init-sqs.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "awslocal sqs get-queue-url --queue-name wagering-events.fifo"]
+      interval: 3s
+      timeout: 5s
+      retries: 40
+
+  migrate:
+    build: .
+    command: ["bun", "src/infrastructure/persistence/migrate.ts", "up"]
+    environment: &app-env
+      DATABASE_URL: postgres://wagering:wagering@postgres:5432/wagering
+      AWS_REGION: us-east-1
+      AWS_ENDPOINT: http://localstack:4566
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      SQS_WAGER_QUEUE: wager-transactions.fifo
+      SQS_WAGER_DLQ: wager-transactions-dlq.fifo
+      SQS_EVENTS_QUEUE: wagering-events.fifo
+      LOG_LEVEL: info
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  app:
+    build: .
+    environment:
+      <<: *app-env
+      ROLE: all
+      PORT: "3000"
+    ports: ["3000-3010:3000"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      localstack: { condition: service_healthy }

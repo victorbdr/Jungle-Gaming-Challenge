@@ -1,0 +1,3 @@
+[test]
+# Testes de integração usam PostgreSQL/LocalStack reais e sobem processos: 5 s (padrão) é pouco sob carga.
+timeout = 30000

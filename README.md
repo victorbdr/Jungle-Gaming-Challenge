@@ -26,7 +26,16 @@ Esse comando sobe:
 | `postgres` | PostgreSQL 16 em `localhost:5432` (`wagering`/`wagering`) |
 | `localstack` | SQS em `localhost:4566`; cria `wager-transactions.fifo`, `wager-transactions-dlq.fifo` (redrive, `maxReceiveCount=5`) e `wagering-events.fifo` |
 | `migrate` | aplica as migrations e sai |
-| `app` ×3 | réplicas em `localhost:3000`, `3001` e `3002`, com `ROLE=all` (HTTP + consumidor SQS + workers) |
+| `app` ×3 | 3 réplicas com `ROLE=all` (HTTP + consumidor SQS + workers), publicadas em portas do intervalo `3000–3010` |
+
+O Docker escolhe as portas das réplicas dentro do intervalo, sem ordem garantida. Para ver quais foram usadas:
+
+```bash
+docker compose ps
+curl http://localhost:<porta>/health/ready   # {"status":"ready","checks":{"postgres":"up","sqs":"up"}}
+```
+
+As portas `5432` (PostgreSQL) e `4566` (LocalStack) precisam estar livres. Se você já tiver um PostgreSQL local rodando, pare-o antes.
 
 ## Rodar localmente (fora do Docker)
 

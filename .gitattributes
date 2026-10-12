@@ -1,0 +1,4 @@
+# Normaliza texto para LF no repositório.
+* text=auto
+# Scripts executados dentro de containers Linux: sempre LF, mesmo em clones no Windows (core.autocrlf=true).
+*.sh text eol=lf
